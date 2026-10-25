@@ -308,7 +308,7 @@ A flagged transaction is a model prediction requiring further investigation, not
 
 **1. Application Interface**
 
-The main interface introduces FraudShield AI and provides instructions for uploading transaction data.
+The main interface of FraudShield AI, showing the project overview and instructions for uploading transaction data.
 
 ![Application Interface](assets/1_application_interface.png)
 
@@ -320,27 +320,27 @@ Users can upload anonymized credit card transaction data in CSV format.
 
 **3. Uploaded Data Preview**
 
-The application displays a preview of uploaded transactions before running fraud detection.
+The application displays a preview of the uploaded transaction data before running fraud detection.
 
-![Uploaded Data Preview](assets/3_uploade_data_preview.png)
+![Uploaded Data Preview](assets/3_upload_data_preview.png)
 
 **4. Prediction Dashboard**
 
-The dashboard summarizes analyzed transactions, legitimate predictions, flagged transactions, and fraud score distributions.
+The dashboard displays transaction summaries, fraud detection counts, and fraud score distributions.
 
 ![Prediction Dashboard](assets/4_prediction_dashboard.png)
 
 **5. Fraud Detection Results**
 
-Users can inspect flagged transactions, review prediction scores, and download complete results.
+Users can review flagged transactions, inspect prediction scores, and download the complete results.
 
 ![Fraud Detection Results](assets/5_fraud_detection_results.png)
 
 **6. Model Information and Limitations**
 
-The application explains the Random Forest model, its evaluation metrics, and important limitations.
+The application provides information about the Random Forest model, its evaluation performance, and important limitations.
 
-![Model Information and Limitations](assets/6_model_information_limitation.png)
+![Model Information and Limitations](assets/6_model%20information%20and%20limitations.png)
 
 ## 10. Repository Structure
 
