@@ -304,6 +304,44 @@ A flagged transaction is a model prediction requiring further investigation, not
 
 ---
 
+### Application Screenshots
+
+**1. Application Interface**
+
+The main interface introduces FraudShield AI and provides instructions for uploading transaction data.
+
+![Application Interface](assets/application_interface.png)
+
+**2. CSV Upload Interface**
+
+Users can upload anonymized credit card transaction data in CSV format.
+
+![CSV Upload Interface](assets/dataset%20uploading_interface.png)
+
+**3. Uploaded Data Preview**
+
+The application displays a preview of uploaded transactions before running fraud detection.
+
+![Uploaded Data Preview](assets/uploaded%20data%20preview.png)
+
+**4. Prediction Dashboard**
+
+The dashboard summarizes analyzed transactions, legitimate predictions, flagged transactions, and fraud score distributions.
+
+![Prediction Dashboard](assets/prediction_dashboard_1.png)
+
+**5. Fraud Detection Results**
+
+Users can inspect flagged transactions, review prediction scores, and download complete results.
+
+![Fraud Detection Results](assets/prediction_dashboard_2.png)
+
+**6. Model Information and Limitations**
+
+The application explains the selected model, its evaluation metrics, and important limitations.
+
+![Model Information](assets/model_information.png)
+
 ## 10. Repository Structure
 
 ```text
