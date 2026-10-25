@@ -4,16 +4,15 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-# Locate the main project folder
+# Locate the project folder
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# Allow Python to find our src folder
+# Allow Python to import from src
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Import our prediction function
 from src.predict import predict_transactions
 
-# Configure the Streamlit page
+# Configure the app
 st.set_page_config(
     page_title="FraudShield AI",
     page_icon="🛡️",
@@ -30,7 +29,7 @@ st.info(
     "Upload a CSV file containing Time, Amount, and V1–V28."
 )
 
-# Upload CSV file
+# Upload CSV
 uploaded_file = st.file_uploader(
     "Choose a transaction CSV file",
     type=["csv"]
@@ -39,7 +38,7 @@ uploaded_file = st.file_uploader(
 if uploaded_file is not None:
 
     try:
-        # Read the uploaded file
+        # Read the CSV file
         data = pd.read_csv(uploaded_file)
 
         st.subheader("Uploaded Transaction Data")
@@ -52,49 +51,52 @@ if uploaded_file is not None:
 
             st.success("Fraud detection completed!")
 
-# Calculate summary statistics
-total_transactions = len(results)
+            # Calculate summary statistics
+            total_transactions = len(results)
 
-fraud_count = (
-    results["Fraud_Prediction"] == 1
-).sum()
+            fraud_count = (
+                results["Fraud_Prediction"] == 1
+            ).sum()
 
-legitimate_count = (
-    results["Fraud_Prediction"] == 0
-).sum()
+            legitimate_count = (
+                results["Fraud_Prediction"] == 0
+            ).sum()
 
-# Display dashboard metrics
-col1, col2, col3 = st.columns(3)
+            # Display dashboard metrics
+            col1, col2, col3 = st.columns(3)
 
-col1.metric(
-    "Total Transactions",
-    total_transactions
-)
+            col1.metric(
+                "Total Transactions",
+                total_transactions
+            )
 
-col2.metric(
-    "Predicted Legitimate",
-    legitimate_count
-)
+            col2.metric(
+                "Predicted Legitimate",
+                legitimate_count
+            )
 
-col3.metric(
-    "Flagged as Fraud",
-    fraud_count
-)
+            col3.metric(
+                "Flagged as Fraud",
+                fraud_count
+            )
 
-# Display prediction results
-st.subheader("Prediction Results")
-st.dataframe(results, use_container_width=True)
+            # Display prediction results
+            st.subheader("Prediction Results")
+            st.dataframe(
+                results,
+                use_container_width=True
+            )
 
-# Convert results to CSV
-csv_data = results.to_csv(index=False)
+            # Convert results to CSV
+            csv_data = results.to_csv(index=False)
 
-# Download button
-st.download_button(
-    label="Download Prediction Results",
-    data=csv_data,
-    file_name="fraudshield_predictions.csv",
-    mime="text/csv"
-)
+            # Download predictions
+            st.download_button(
+                label="Download Prediction Results",
+                data=csv_data,
+                file_name="fraudshield_predictions.csv",
+                mime="text/csv"
+            )
 
     except (ValueError, pd.errors.ParserError) as error:
         st.error(f"Unable to process the CSV: {error}")
