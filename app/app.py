@@ -1,18 +1,21 @@
 
 import sys
+import hashlib
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-# Find the project folder and import our prediction function
+# --------------------------------------------------
+# 1. PROJECT SETUP
+# --------------------------------------------------
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.predict import predict_transactions
 
-# Configure website
 st.set_page_config(
     page_title="FraudShield AI",
     page_icon="🛡️",
@@ -28,8 +31,11 @@ REQUIRED_COLUMNS = [
 MAX_ROWS = 100_000
 
 
-# Check uploaded data before making predictions
-def validate_input(data: pd.DataFrame) -> pd.DataFrame:
+# --------------------------------------------------
+# 2. VALIDATE UPLOADED DATA
+# --------------------------------------------------
+
+def validate_input(data: pd.DataFrame):
 
     if data.empty:
         raise ValueError("The CSV is empty.")
@@ -43,8 +49,8 @@ def validate_input(data: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("Duplicate column names found.")
 
     missing = [
-        col for col in REQUIRED_COLUMNS
-        if col not in data.columns
+        column for column in REQUIRED_COLUMNS
+        if column not in data.columns
     ]
 
     if missing:
@@ -72,7 +78,10 @@ def validate_input(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-# Website header
+# --------------------------------------------------
+# 3. WEBSITE HEADER
+# --------------------------------------------------
+
 st.title("🛡️ FraudShield AI")
 
 st.caption(
@@ -90,13 +99,16 @@ st.info(
 )
 
 
-# Instructions for visitors
+# --------------------------------------------------
+# 4. CSV INSTRUCTIONS
+# --------------------------------------------------
+
 with st.expander("How to prepare your CSV"):
 
     st.write(
-        "Each row must represent one transaction. "
-        "Your file must contain the same 30 input features "
-        "as the original credit card fraud dataset."
+        "Each row represents one transaction. "
+        "The file must contain the 30 input features "
+        "used during model training."
     )
 
     st.write(
@@ -122,20 +134,45 @@ with st.expander("How to prepare your CSV"):
     )
 
 
-# CSV upload
+# --------------------------------------------------
+# 5. UPLOAD CSV
+# --------------------------------------------------
+
 uploaded_file = st.file_uploader(
     "Upload transaction CSV",
     type=["csv"]
 )
 
 
+# --------------------------------------------------
+# 6. HANDLE FILE CHANGES
+# --------------------------------------------------
+
 if uploaded_file is not None:
 
+    # Create a unique identifier from the file contents
+    file_hash = hashlib.sha256(
+        uploaded_file.getvalue()
+    ).hexdigest()
+
+    # Clear previous results if a different file is uploaded
+    if st.session_state.get("current_file_hash") != file_hash:
+
+        st.session_state["current_file_hash"] = file_hash
+
+        st.session_state.pop(
+            "fraudshield_results",
+            None
+        )
+
     try:
-        # Read and validate uploaded file
+
+        # Read and validate CSV
         data = pd.read_csv(uploaded_file)
+
         data = validate_input(data)
 
+        # Show preview
         st.subheader("Uploaded Data Preview")
 
         st.dataframe(
@@ -143,14 +180,17 @@ if uploaded_file is not None:
             use_container_width=True
         )
 
-        # Run model predictions
+        # ------------------------------------------
+        # 7. RUN FRAUD DETECTION
+        # ------------------------------------------
+
         if st.button("🔍 Detect Fraud", type="primary"):
 
             with st.spinner("Analyzing transactions..."):
 
                 results = predict_transactions(data).copy()
 
-                # Add readable fraud status
+                # Create readable prediction labels
                 results["Fraud_Status"] = results[
                     "Fraud_Prediction"
                 ].map({
@@ -158,12 +198,12 @@ if uploaded_file is not None:
                     1: "Flagged for Review"
                 })
 
-                # Convert model score to percentage
+                # Convert fraud score into percentage
                 results["Fraud_Score_Percent"] = (
                     results["Fraud_Probability"] * 100
                 ).round(2)
 
-                # Add transaction numbers
+                # Add transaction IDs
                 results.insert(
                     0,
                     "Transaction_ID",
@@ -185,19 +225,22 @@ if uploaded_file is not None:
                     important_columns.append("Class")
 
                 other_columns = [
-                    col for col in results.columns
-                    if col not in important_columns
+                    column for column in results.columns
+                    if column not in important_columns
                 ]
 
                 results = results[
                     important_columns + other_columns
                 ]
 
-                # Save results so they remain visible
-                st.session_state["fraudshield_results"] = results
-                st.session_state["fraudshield_filename"] = (
-                    uploaded_file.name
-                )
+                # Store predictions for the current file
+                st.session_state[
+                    "fraudshield_results"
+                ] = results
+
+                st.session_state[
+                    "results_file_hash"
+                ] = file_hash
 
     except (
         ValueError,
@@ -206,19 +249,24 @@ if uploaded_file is not None:
         OverflowError
     ) as error:
 
+        st.session_state.pop(
+            "fraudshield_results",
+            None
+        )
+
         st.error(f"Could not process the file: {error}")
 
+    # --------------------------------------------------
+    # 8. SHOW RESULTS ONLY FOR THE CURRENT FILE
+    # --------------------------------------------------
 
-    # Show results after prediction
     if (
-        st.session_state.get("fraudshield_filename")
-        == uploaded_file.name
-        and "fraudshield_results" in st.session_state
+        "fraudshield_results" in st.session_state
+        and st.session_state.get("results_file_hash") == file_hash
     ):
 
         results = st.session_state["fraudshield_results"]
 
-        # Calculate summary statistics
         total = len(results)
 
         flagged = int(
@@ -233,7 +281,10 @@ if uploaded_file is not None:
 
         st.success("Fraud detection completed!")
 
-        # Dashboard summary
+        # ------------------------------------------
+        # 9. DASHBOARD METRICS
+        # ------------------------------------------
+
         st.subheader("Prediction Overview")
 
         col1, col2, col3, col4 = st.columns(4)
@@ -258,7 +309,10 @@ if uploaded_file is not None:
             f"{flagged / total * 100:.2f}%"
         )
 
-        # Charts
+        # ------------------------------------------
+        # 10. VISUALIZATIONS
+        # ------------------------------------------
+
         left, right = st.columns(2)
 
         with left:
@@ -283,19 +337,42 @@ if uploaded_file is not None:
 
             st.subheader("Fraud Score Distribution")
 
+            # Group scores into ranges
+            score_bins = pd.cut(
+                results["Fraud_Score_Percent"],
+                bins=[-0.01, 10, 20, 30, 40, 50,
+                      60, 70, 80, 90, 100],
+                labels=[
+                    "0–10", "10–20", "20–30",
+                    "30–40", "40–50", "50–60",
+                    "60–70", "70–80",
+                    "80–90", "90–100"
+                ],
+                include_lowest=True
+            )
+
+            score_counts = (
+                score_bins.value_counts()
+                .sort_index()
+            )
+
+            score_chart = pd.DataFrame({
+                "Score Range (%)": score_counts.index.astype(str),
+                "Transactions": score_counts.values
+            })
+
             st.bar_chart(
-                pd.DataFrame({
-                    "Fraud Score (%)":
-                        results["Fraud_Score_Percent"]
-                }),
-                y="Fraud Score (%)"
+                score_chart.set_index("Score Range (%)")
             )
 
             st.caption(
-                "Scores are shown in uploaded CSV row order."
+                "Number of transactions in each fraud-score range."
             )
 
-        # Separate suspicious transactions
+        # ------------------------------------------
+        # 11. FLAGGED TRANSACTIONS
+        # ------------------------------------------
+
         st.subheader("Transactions Flagged for Review")
 
         if flagged_rows.empty:
@@ -317,7 +394,10 @@ if uploaded_file is not None:
                 hide_index=True
             )
 
-        # Full prediction table
+        # ------------------------------------------
+        # 12. ALL PREDICTION RESULTS
+        # ------------------------------------------
+
         st.subheader("All Prediction Results")
 
         st.dataframe(
@@ -326,7 +406,10 @@ if uploaded_file is not None:
             hide_index=True
         )
 
-        # Download results
+        # ------------------------------------------
+        # 13. DOWNLOAD RESULTS
+        # ------------------------------------------
+
         st.download_button(
             label="⬇️ Download Complete Prediction Results",
             data=results.to_csv(index=False).encode("utf-8"),
@@ -340,15 +423,23 @@ if uploaded_file is not None:
             "Flagged transactions require further review."
         )
 
+else:
 
-# Model information
+    # Clear stored predictions when no file is uploaded
+    st.session_state.pop("current_file_hash", None)
+    st.session_state.pop("results_file_hash", None)
+    st.session_state.pop("fraudshield_results", None)
+
+
+# --------------------------------------------------
+# 14. ABOUT THE MODEL
+# --------------------------------------------------
+
 st.divider()
 
 with st.expander("About the Model and Limitations"):
 
-    st.write(
-        "**Algorithm:** Random Forest Classifier"
-    )
+    st.write("**Algorithm:** Random Forest Classifier")
 
     st.write(
         "**Dataset:** ULB/Kaggle Credit Card Fraud Detection"
