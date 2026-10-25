@@ -52,8 +52,49 @@ if uploaded_file is not None:
 
             st.success("Fraud detection completed!")
 
-            st.subheader("Prediction Results")
-            st.dataframe(results.head(20))
+# Calculate summary statistics
+total_transactions = len(results)
+
+fraud_count = (
+    results["Fraud_Prediction"] == 1
+).sum()
+
+legitimate_count = (
+    results["Fraud_Prediction"] == 0
+).sum()
+
+# Display dashboard metrics
+col1, col2, col3 = st.columns(3)
+
+col1.metric(
+    "Total Transactions",
+    total_transactions
+)
+
+col2.metric(
+    "Predicted Legitimate",
+    legitimate_count
+)
+
+col3.metric(
+    "Flagged as Fraud",
+    fraud_count
+)
+
+# Display prediction results
+st.subheader("Prediction Results")
+st.dataframe(results, use_container_width=True)
+
+# Convert results to CSV
+csv_data = results.to_csv(index=False)
+
+# Download button
+st.download_button(
+    label="Download Prediction Results",
+    data=csv_data,
+    file_name="fraudshield_predictions.csv",
+    mime="text/csv"
+)
 
     except (ValueError, pd.errors.ParserError) as error:
         st.error(f"Unable to process the CSV: {error}")
